@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "*"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -55,7 +56,7 @@ jobs:
         run: |
           cmake -B build -S . -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ \
-            -DVIDEO2X_USE_EXTERNAL_NCNN=OFF -DVIDEO2X_USE_EXTERNAL_SPDLOG=OFF \
+            -DVIDEO2X_USE_EXTERNAL_NCNN=OFF -DVIDEO2X_USE_EXTERNAL_SPDLOG=OFF -DVIDEO2X_ENABLE_X86_64_V3=ON \
             -DCMAKE_INSTALL_PREFIX=build/video2x-linux-ubuntu-2404-amd64/usr
           cmake --build build --config Release --target install --parallel
           mkdir -p build/video2x-linux-ubuntu-2404-amd64/DEBIAN
@@ -69,8 +70,6 @@ jobs:
           path: build/video2x-linux-ubuntu-2404-amd64.deb
 
   windows:
-    # Disabled because it takes too long to build
-    if: false
     name: Build Windows release
     needs:
       - setup
@@ -108,7 +107,7 @@ jobs:
         shell: pwsh
         run: |
           cmake -S . -B build `
-            -DVIDEO2X_USE_EXTERNAL_NCNN=OFF -DVIDEO2X_USE_EXTERNAL_SPDLOG=OFF -DVIDEO2X_USE_EXTERNAL_BOOST=OFF `
+            -DVIDEO2X_USE_EXTERNAL_NCNN=OFF -DVIDEO2X_USE_EXTERNAL_SPDLOG=OFF -DVIDEO2X_USE_EXTERNAL_BOOST=OFF -DVIDEO2X_ENABLE_X86_64_V3=ON `
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=build/video2x_install
           cmake --build build --config Release --parallel --target install
 
@@ -121,46 +120,3 @@ jobs:
         with:
           name: video2x-windows-amd64
           path: build/video2x-windows-amd64.zip
-
-  container:
-    name: Build and upload container
-    needs:
-      - setup
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - uses: mr-smithers-excellent/docker-build-push@v6
-        name: Build & push the Docker image
-        with:
-          registry: ghcr.io
-          username: ${{ secrets.GHCR_USER }}
-          password: ${{ secrets.GHCR_TOKEN }}
-          dockerfile: packaging/docker/Dockerfile
-          image: video2x
-          tags: latest, ${{ needs.setup.outputs.version }}
-
-  create-release:
-    name: Create release
-    needs:
-      - setup
-      # - ubuntu-2404
-      # - windows
-      - container
-    runs-on: ubuntu-latest
-    # outputs:
-    #   upload_url: ${{ steps.create_release.outputs.upload_url }}
-    steps:
-      # - name: Download artifacts
-      #   uses: actions/download-artifact@v7
-
-      - name: Create release
-        id: create_release
-        uses: softprops/action-gh-release@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: ${{ needs.setup.outputs.version }}
-          name: ${{ needs.setup.outputs.version }}
-          draft: true
-          prerelease: false
