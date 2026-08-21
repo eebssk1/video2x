@@ -155,7 +155,7 @@ int Encoder::init(
         std::string opt_value_str = opt_value;
         logger()->debug("Setting encoder option '{}' to '{}'", opt_name_str, opt_value_str);
 
-        ret = av_opt_set(enc_ctx_->priv_data, opt_name_str.c_str(), opt_value_str.c_str(), 0);
+        ret = av_opt_set(enc_ctx_, opt_name_str.c_str(), opt_value_str.c_str(), AV_OPT_SEARCH_CHILDREN);
         if (ret < 0) {
             char errbuf[AV_ERROR_MAX_STRING_SIZE];
             av_strerror(ret, errbuf, sizeof(errbuf));
